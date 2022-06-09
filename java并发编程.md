@@ -236,6 +236,41 @@ MESI分别代表缓存行数据所处的四种状态，通过对这四种状态�
 [缓存一致性协议分析](https://www.cnblogs.com/ynyhl/p/12119690.html)
 
 
+#### synchronized
+
+解决共享资源的原子性和有序性,因为是独占共享资源,所以不涉及可见性问题.
+
+锁的表现形式:
+
+```
+普通方法->锁是当前示例对象
+静态方法->锁是当前类的Class对象
+同步方法块->锁是Synchronized指定的对象
+```
+
+synchronized要求线程访问同步代码块时,首先先获取锁,退出或异常时释放锁.
+
+- 实现原理
+
+JVM基于进入和退出Monitor对象来实现方法同步和代码块同步,两者实现细节不一样.    
+代码块同步:使用monitorenter和monitorexit指令实现.    
+方法同步的实现细节JVM规范中未提及,但是它可以使用代码块同步的方式来实现.
+
+monitorenter: 在编译后插入到同步代码块的开始位置.
+monitorexit:插入到方法结束或异常处.
+JVM保证monitorenter和monitorexit成对匹配.任何对象都有一个monitor与之关联,当且一个monitor被持有后,它将处于锁定状态.     
+线程执行到monitorenter指令时,将会尝试获取对象所对应的monitor的所有权,即尝试获取对象的锁.
+
+
+- 对象头
+
+
+- 锁升级
+
+
+#### 原子操作
+
+
 
 
 
