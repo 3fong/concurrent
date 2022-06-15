@@ -471,13 +471,8 @@ Java内存模型抽象机构:
 
 重排序可能会导致多线程程序出现内存可见性问题.JMM确保对多线程提供一致的内存可见性.     
 编译器重排序.JMM会禁止特定类型的编译器重排序;
-CPU重排序.会要求Java编译器在生成指令时,对CPU重排序插入特点类型的内存屏障指令,通过内存屏障指令来禁止特定类型的CPU重排序.
+CPU重排序.会要求Java编译器在生成指令时,对CPU重排序插入特点类型的**内存屏障**指令,通过内存屏障指令来禁止特定类型的CPU重排序.
 
-内存屏障类型
-
-![](https://pics4.baidu.com/feed/a6efce1b9d16fdfa4169cec75dccf75394ee7b59.jpeg?token=e2153ef2a6938c4f8704d80674160be0)
-
-StoreLoad 是一个全能型屏障,它同时具体其他三种屏障效果.它的开销也很大,当前CPU需要把写缓冲区中的数据全部刷新到内存中.
 
 
 #### happens-before 
@@ -605,6 +600,38 @@ volatile与happens-before的关系
 
 - volatile写-读的内存语义
 
+volatile写的内存语义: 当写一个volatile变量时,JMM会把该线程对应的本地内存中的共享变量值刷新到主内存    
+volatile读的内存语义: 当读一个volatile变量时,JMM会把该线程对应的本地内存置为无效.线程将从主内存中读取共享变量.
+
+每一次volatile写读都是一次线程间的消息传递过程.
+
+- volatile内存语义的实现
+
+volatile重排序规则表    
+![](https://pics6.baidu.com/feed/b812c8fcc3cec3fdbaf8737e476cc736859427e0.png?token=def69ab39916e73355428cadde3ae425)
+
+不对volatile读之后的任何操作重排序;不对volatile写之前的任何操作重排序.    
+不对volatile写之后的volatile变量操作进行重排序
+
+为了实现volatile的内存语义,编译器在生成字节码时,会在指令序列中插入内存屏障来禁止特定类型的处理器重排序
+
+JMM基于保守策略来插入内存屏障:
+
+```
+在每个volatile写操作的前面插入一个StoreStore屏障(禁止普通写与volatile写重排序)    
+在每个volatile写操作的后面插入一个StoreLoad屏障(禁止volatile写与volatile读写重排序)    
+在每个volatile读操作的后面插入一个LoadLoad屏障(禁止普通读与volatile读重排序)    
+在每个volatile读操作的后面插入一个LoadStore屏障(进行普通写与volatile读重排序)    
+```
+
+实际执行时,编译器根据要执行的代码省略不必要的内存屏障,来优化实际执行的代码
+
+> 内存屏障类型
+
+![](https://pics4.baidu.com/feed/a6efce1b9d16fdfa4169cec75dccf75394ee7b59.jpeg?token=e2153ef2a6938c4f8704d80674160be0)
+
+StoreLoad 是一个全能型屏障,它同时具体其他三种屏障效果.它的开销也很大,当前CPU需要把写缓冲区中的数据全部刷新到内存中.    
+Store是写,Load是读.
 
 
 [volatile原理简介](https://juejin.cn/post/6844903601064640525)
