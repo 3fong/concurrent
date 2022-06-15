@@ -587,9 +587,27 @@ JMM不保证未同步程序的执行结果与该程序在顺序一致性模型�
 
 JSR-133(JDK1.5开始)内存模型要求只允许64long/double变量的写操作拆分为两个32位的写操作执行,任意读操作必须具有原子性.
 
+#### volatile
+
+可以将对volatile变量的单个读/写理解为使用同一个锁对这些单个读/写操作做了同步.    
+   
+特性:    
+1 可见性.对一个volatile变量的读,总能看到任意线程对这个volatile变量的写(锁的happens-before 规则保证释放锁和获取锁的两个线程之间的内存可见性).    
+2 原子性.对任意单个volatile变量的读/写具有原子性(锁的语义决定了临界区代码的执行具有原子性).
+
+- volatile写-读建立的happens-before关系
+
+从JSR-133(JDK1.5)开始,volatile变量的写-读可以实现线程间的通信    
+从内存语义的角度来说,volatile的写-读与锁的释放和获取有相同的内存效果.volatile写和锁的释放有相同的内存语义;volatile读与锁的获取有相同的内存语义
+
+volatile与happens-before的关系    
+![volatile与happens-before](http://img.mp.sohu.com/upload/20170628/e9254d8e0617447e8fbfe7bb22d9e455_th.png)
+
+- volatile写-读的内存语义
 
 
 
+[volatile原理简介](https://juejin.cn/post/6844903601064640525)
 
 
 
