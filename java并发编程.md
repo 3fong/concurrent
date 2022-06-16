@@ -633,12 +633,52 @@ JMM基于保守策略来插入内存屏障:
 StoreLoad 是一个全能型屏障,它同时具体其他三种屏障效果.它的开销也很大,当前CPU需要把写缓冲区中的数据全部刷新到内存中.    
 Store是写,Load是读.
 
+- JSR-133 增强volatile内存语义的原因
+
+JSR-133 前的Java内存模型不允许volatile变量间重排序,但允许volatile变量和普通变量重排序.普通变量的重排序会造成其他线程获取变量结果的不可知.
+所以JSR-133增强了volatile内存语义:    
+严格限制编译器和处理器对volatile变量与普通变量的重排序,确保volatile的写-读和锁的释放-获取具有相同的内存语义.
+
+```
+在功能上,锁比volatile更强大;在可伸缩性和执行性能上,volatile更好;
+```
 
 [volatile原理简介](https://juejin.cn/post/6844903601064640525)
 
+#### 锁的内存语义
 
+锁的释放-获取建立的happens-before关系
 
+锁是Java最重要的同步机制.锁除了让临界区互斥执行外,还可以让释放锁的线程向获取同一个锁的线程发送消息(获取到内存共享变量).线程A在锁释放前所有可见的共享变量,在线程B获取同一个锁后,将立即对线程B可见
 
+- 锁的释放-获取内存语义
+
+当线程释放锁时,JMM会把该线程对应的本地内存中的共享变量刷新到主内存中.    
+当线程获取锁时,JMM会把该线程对应的本地内存置为无效.从而使得被监视器保护的临界区代码必须从主内存中读取共享变量    
+所以: 锁释放与volatile写有相同的内存语义;锁获取与volatile读有相同的内存语义
+
+即:    
+```
+线程A释放锁,实质上是线程A向接下来将要获取这个锁的某个线程发出了消息    
+线程B获取锁,实质上是线程B接收了之前某个线程发出的消息    
+线程A释放锁,线程B获取锁,实质上是线程A通过主内存向线程B发送消息
+```
+
+- 锁的实现
+
+ReentrantLock 锁结构:    
+![](https://pics6.baidu.com/feed/e824b899a9014c084d66fe196703a9007af4f4aa.png?token=0d2197b9ad1f4a2d2360b1f4fa879d74)
+
+以公平锁为例,ReentrantLock.lock() 加锁方法调用轨迹:    
+1 ReentrantLock.lock()    
+2 FairSync.lock()    
+3 AbstractQueuedSynchronier.acquire(int arg)    
+4 ReentrantLock.tryAcquire(int acquires)
+
+tryAcquire实现:    
+```
+
+```
 
 
 
