@@ -677,9 +677,124 @@ ReentrantLock 锁结构:
 
 tryAcquire实现:    
 ```
-
+ protected final boolean tryAcquire(int acquires) {
+             final Thread current = Thread.currentThread();
+             //获取状态位
+             int c = getState();
+             //0，锁还没被拿走
+             if (c == 0) {
+                 //如果队列中没有其他线程 说明没有线程正在占有锁
+                 if (!hasQueuedPredecessors() &&
+                     //修改状态为1
+                     compareAndSetState(0, acquires)) {
+                     //如果通过CAS操作将状态为更新成功则代表当前线程获取锁，
+                     //因此，将当前线程设置到AQS的一个变量中，说明这个线程拿走了锁。
+                     setExclusiveOwnerThread(current);
+                     return true;
+                 }
+             }
+             //锁被拿走了，由于ReentrantLock是可重入锁，所以判断下持有锁的是否是同一个线程
+             else if (current == getExclusiveOwnerThread()) {
+                 //如果是的话累加在state字段上就可以了
+                 int nextc = c + acquires;
+                 if (nextc < 0)
+                     throw new Error("Maximum lock count exceeded");
+                 setState(nextc);
+                 return true;
+             }
+             return false;
+         }
+     }
 ```
 加锁方法首先读volatile变量state
+
+
+公平锁中,ReentrantLock.unlock()调用轨迹:    
+1 ReentrantLock.unlock()    
+2 AbstractQueuedSynchronizer.release(int arg)    
+3 Sync.tryRelease(int releases)
+```
+protected final boolean tryRelease(int releases) {
+    int c = getState() - releases;
+    if (Thread.currentThread() != getExclusiveOwnerThread())
+        throw new IllegalMonitorStateException();
+    boolean free = false;
+    if (c == 0) {
+        free = true;
+        setExclusiveOwnerThread(null);
+    }
+    setState(c);
+    return free;
+}
+```
+释放锁时最后写volatile变量state    
+
+CAS: compareAndSet(int expect,int update).如果当前状态值等于预期值,则以原子方式将同步状态设置为给定的更新值.CAS操作具有volatile读和写的内存语义.
+
+编译器不会对volatile读与volatile读后面的任意内存操作重排序;编译器不会对volatile写与volatile写前面的任意内存操作重排序.组合这两个条件,意味着为了同时实现volatile读和volatile写的内存语义,编译器不能对CAS与CAS前面和后面的任意内存操作重排序.
+
+具体实现:    
+如果是多核处理器,程序会在cas中为特定指令增加lock前缀.单核处理器会省略lock前缀.    
+lock前缀含义:     
+1 确保对内存的读-改-写操作原子执行.总线锁,缓存锁    
+2 禁止该指令,与之前和之后的读和写指令重排序    
+3 把写缓冲区中的所有数据刷新到内存中    
+
+上面2,3具有内存屏障效果,等同于volatile读和volatile写的内存语义.    
+
+公平锁和非公平锁的内存语义:    
+1 两者锁释放时,最后都要写一个volatile变量stage    
+2 公平锁获取时,首先读volatile变量    
+3 非公平锁获取时,首先会用CAS更新volatile变量,这个操作同时具备volatile读和volatile写内存语义    
+
+因此锁释放-获取的内存语义实现方式至少有两种:    
+1 利用volatile变量的写-读所具有的内存语义     
+2 利用CAS所附带的volatile读和volatile写的内存语义
+
+
+- concurrent 包的实现
+
+concurrent 包的基石: CAS原子指令 + volatile读写和CAS实现线程间通信
+
+concurrent 包的实现模式:    
+首先,声明共享变量为volatile    
+其次,使用CAS的原子条件更新来实现线程之间的同步   
+同时,配合以volatile读/写和CAS所具有的volatile读/写内存语义来实现线程之间的通信
+
+AQS的非阻塞数据结构和原子变量类,这些concurrent 包中的基础类都是使用这种模式来实现的,而concurrent 包中的高层类又是依赖这些基础类来实现的
+
+
+#### final 域的内存语义
+
+final域中,编译器和处理器要遵守两个重排序规则:    
+1 在构造函数内对一个final域的写入,与随后把这个被构造对象的引用赋值给一个引用变量,这两个操作间不能重排序.    
+2 初次读一个包含final域的对象的引用,与随后初次读这个final域,这两个操作之间不能重排序
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
