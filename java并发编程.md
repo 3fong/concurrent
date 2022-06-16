@@ -679,6 +679,8 @@ tryAcquire实现:
 ```
 
 ```
+加锁方法首先读volatile变量state
+
 
 
 
