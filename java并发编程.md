@@ -804,13 +804,122 @@ final域中,编译器和处理器要遵守两个重排序规则:
 > JSR-133增强final语义
 通过为final域增加写和读重排序规则,可以为Java程序员提供初始化安全保证: 只要对象是正确构造的(被构造对象的引用在构造函数中没有"溢出"),那么不需要使用同步(lock,volatile)就可以保证任意线程都能看到这个final域在构造函数中被初始化之后的值.
 
+#### 双重检查锁定与延迟初始化
+
+在Java多线程中,有时候可能需要推迟一些高开销的对象初始化操作,并且只有在使用这些对象时才进行初始化.
+
+- 双重检查锁定
+
+双重检查锁定就是懒加载的一种实现方式:    
+
+```
+public class DoubleCheckedLocking {                 //1
+    private static Instance instance;                    //2
+
+    public static Instance getInstance() {               //3
+        if (instance == null) {                          //4:第一次检查
+            synchronized (DoubleCheckedLocking.class) {  //5:加锁
+                if (instance == null)                    //6:第二次检查
+                    instance = new Instance();           //7:问题的根源出在这里
+            }                                            //8
+        }                                                //9
+        return instance;                                 //10
+    }                                                    //11
+}                                                        //12
+```
+
+这种方式用于解决直接方法锁的性能问题,但第4步instance不为null时,instance引用的对象有可能还没有完成初始化.因为instance = new Instance() 这个步骤可能发送重排序.
+
+instance = new Instance() 内存语义:    
+```
+memory = allocate();   //1：分配对象的内存空间
+ctorInstance(memory);  //2：初始化对象
+instance = memory;     //3：设置instance指向刚分配的内存地址
+```
+
+2,3步骤会发生重排序.所有线程在执行java程序时必须要遵守intra-thread semantics。intra-thread semantics保证重排序不会改变单线程内的程序执行结果。换句话来说，intra-thread semantics允许那些在单线程内，不会改变单线程程序执行结果的重排序。上面三行伪代码的2和3之间虽然被重排序了，但这个重排序并不会违反intra-thread semantics。这个重排序在没有改变单线程程序的执行结果的前提下，可以提高程序的执行性能。因为单线程中只有初始化完成,才会被外部访问,所以2,3重排序不影响最终结果
+
+但是多线程环境中就会出现访问到未正常初始化的对象:
+
+![](https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fimg.136.la%2F20200924%2Fce90e907794c420c9b81147c31c9208a.jpg&refer=http%3A%2F%2Fimg.136.la&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1658139891&t=f7d84da4696a24c19176c7dcb6ceadf9)
 
 
+解决方式:    
+1 不允许2,3重排序    
+2 允许2,3重排序,但不允许其他线程"看到"这个重排序
+
+- 基于volatile解决延迟初始化重排序问题
+
+```
+public class DoubleCheckedLocking {                 //1
+    private volatile static Instance instance;                    //2 增加volatile语义
+
+    public static Instance getInstance() {               //3
+        if (instance == null) {                          //4:第一次检查
+            synchronized (DoubleCheckedLocking.class) {  //5:加锁
+                if (instance == null)                    //6:第二次检查
+                    instance = new Instance();           //7:问题的根源出在这里
+            }                                            //8
+        }                                                //9
+        return instance;                                 //10
+    }                                                    //11
+}                                                        //12
+```
+volatile变量禁止volatile变量读之后的任何重排序操作,这样就可以解决多线程间由于重排序造成的结果不一致问题
+
+- 基于类初始化的解决方案
+
+```
+public class InstanceFactory {
+     private static class InstanceHolder {
+          public static Instance instance = new Instance();
+     }
+     public static Instance getInstance() {
+          return InstanceHolder.instance;   //触发instance进行初始化
+     }
+}
+```
+JVM在类的初始化阶段(即在Class被加载后,且被线程使用之前),会执行类的初始化.在执行类的初始化期间,JVM会去获取一个锁,用于同步多线程间对同一个类的初始化.    
+初始化中2,3步骤可以重排序,但是共享变量临界区内的值只有在释放锁时才能被其他线程可见,所以重排序不影响结果的一致性
+
+类,接口的初始化时点:    
+1 T是一个类,而且一个T类型的实现被创建     
+2 T是一个类,且T中声明的一个静态方法被调用    
+3 T中声明的一个静态字段被赋值    
+4 T中声明的一个静态字段被使用,而且这个字段不是一个常量字段    
+5 T是一个顶级类,而且一个断言语句嵌套在T内部被执行
+
+类接口的初始化存在并发问题(创建步骤非原子性),所以多线程中需要同步处理.Java语言规范规定:    
+对于每一个类或接口C,都有一个唯一的初始化锁LC与之对应.从C到LC的映射,由JVM的具体实现去自由实现.    
+JVM在类初始化期间会获取这个初始化锁,并且每个线程至少获取一次锁来确保这个类已经被初始化过了.
+
+初始化类或接口的核心流程:    
+1 通过在Class对象上同步(即获取Class对象的初始化锁),来控制类或接口的初始化.这个获取锁的线程会一直等待,直到当前线程能够获取到这个初始化锁(获取到锁的线程将锁对象状态由onInitialization改为initializing)        
+2 线程A执行类的初始化(执行类静态初始化和初始化类静态字段),同时线程B在初始化锁对应的condition上等待    
+3 线程A设置state=initialized,然后唤醒在condition中等待的所有线程.    
+4 线程B结束类的初始化处理
 
 
+基于volatile与基于类的初始化方案的优缺点:    
+```
+优点:    
+1 基于volatile可实现静态字段和实例字段的双层延迟处理;    
+2 基于类的初始化实现方式更简洁,可读性好    
+缺点:    
+延迟处理类初始化成本较正常初始化要高.它虽然推迟了类创建实例开销,但是增加了访问延迟初始化的字段开销.
+```
 
+#### Java内存模型
 
+JMM和处理器内存模型在设计时通常会以顺序一致性内存模型为参考.在设计时,会对顺序一致性模型的实现有所放松,来实现一致性和可用性,效率的兼容.    
 
+根据对不同类型的读写操作组合的执行顺序的放松,常见处理器的内存模型分类:    
+```
+1 TSO(Total Store Ordering).放松程序中写-读操作的顺序    
+2 PSO(Partial Store Order).在TSO上,继续放松程序中写-写的操作顺序    
+3 RMO(Relaxed Memory Order)和PowerPC.在前两条下,继续放松程序中读-写和读-读的操作顺序 
+```
+这里的放松指两个操作间不存在数据依赖性为前提的.处理器要遵守as-if-serieal语义,不对存在数据依赖的内存操作做重排序.
 
 
 
