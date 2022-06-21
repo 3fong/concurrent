@@ -105,10 +105,16 @@ c. NotifyThread释放锁后,WaitThread竞争并再次获取到锁并从wait()方
 
 3. 管道输入/输出流    
 
-
+管道流主要用于线程间的数据传输,而传输媒介是内存.实现类:    
+PipedOutputStream,PipedInputStream,PipedReader,PipedWriter
 
 4. Thread.join()    
+
+join(): 当前线程A等待thread线程终止之后才从join()返回.插入线程.实现原理:加锁,循环,处理逻辑,等待/通知范式的标准实现.
+
 5. ThreadLocal  
+
+线程变量.是一个以ThreadLocal对象为键,任意对象为值的存储结构.该结构依赖于当前线程.
 
 
 
