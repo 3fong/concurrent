@@ -141,8 +141,13 @@ join(): 当前线程A等待thread线程终止之后才从join()返回.插入线�
 
 锁时用来控制多个线程访问共享资源的方式.一般来说,锁最常用的场景是防止多个线程同时访问共享资源,但读写锁,可以实现多个线程同时访问.
 
-sychronized锁: 便捷的隐式获取锁方式.但是它将锁的获取和释放固化;简化了锁的使用,但是扩展性不好    
+sychronized锁: 便捷的隐式获取锁方式.但是它将锁的获取和释放固化;简化了锁的使用,但是扩展性不好,具体体现:    
+    1 线程sychronized获取锁,如果遇到阻塞,只能一直等待;而Lock可以使用tryLock(long time, TimeUnit unit)) 或者 能够响应中断来中断阻塞    
+    2 sychronized不区分读写锁,Lock可以区分读写锁,锁运用更灵活    
+    3 我们可以通过Lock得知线程有没有成功获取到锁 (解决方案：ReentrantLock) ，但这个是synchronized无法办到的
 Lock接口: 显示的获取和释放锁;扩展性好,可以灵活的按需配置锁资源,使用上比sychronized繁琐
+
+[sychronized与lock的区别](https://www.cnblogs.com/myseries/p/10784076.html)
 
 ```
 Lock lock = ...;
@@ -155,6 +160,23 @@ try{
     lock.unlock();   //释放锁
 }
 ```
+
+- 问题
+
+为什么lock.lock()获取锁操作不能再try代码块中?    
+如果未获得锁就释放的话,会被抛锁异常
+
+Lock比sychronized多出的特性    
+![](https://www.icode9.com/i/ll/?i=20201214103843929.png)
+
+Lock的API
+![](https://www.icode9.com/i/ll/?i=20201214103823924.png?,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3FxXzM0Mjc1Mjc3,size_16,color_FFFFFF,t_70)
+
+### 队列同步器 AbstractQueuedSynchronizer
+
+
+
+
 
 
 
