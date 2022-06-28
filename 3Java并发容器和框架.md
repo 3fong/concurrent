@@ -49,14 +49,31 @@ ConcurrentHashMap CAS+sychronized 锁结构(jdk1.8):
 
 ConcurrentHashMap 的初始化即是Segment的创建数量,segment的数量按2的倍数递增,数量最大是2^16次方=65536
 
+segmentShift:参与散列运算的位数      
+segmentMask:散列运算掩码   
 
+两个参数用于散列hash值运算,减少hash冲突
 
+- ConcurrentHashMap 操作
 
+get(key): 
 
+通过volatile 声明共享变量,保持线程间可见性.比锁的性能高,且实现简单.但是当读到的值为null时,会加锁重读.定位HashEntry的散列算法与与定位Segment的散列算法不一样,以避免两次hash后的值一样.
 
+定位segment: (hash >>> segmentShift) & segmentMask    
+定位HashEntry: hash & (tab.length - 1)
 
+put(key,value):(*) 
 
+需要加锁保证共享变量安全写入.put首先定位到segment,然后在segment里进行插入操作.插入步骤:   
+1 判断segment里 HashEntry数组是否扩容:先判断HashEntry数组是否超过容量后再扩容;而hashmap是先添加元素再扩容,存在空扩容的问题     
+2 对指定segment里HashEntry数组扩容后插入新元素:2倍扩容后,原数组元素再hash后插入新数组里(分散).不会对整个容器扩容
 
+size:
+
+jdk1.7中 ConcurrentHashMap 先尝试两次遍历求和segment.modCount不相同,才会锁住所有segment;modCount共享变量只会在写操作(加锁)才会更新,以实现线程间共享变化.
+
+### ConcurrentlinkedQueue
 
 
 
