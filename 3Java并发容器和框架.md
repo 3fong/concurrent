@@ -35,11 +35,19 @@ public static void main(String[] args) throws InterruptedException {
 
 - ConcurrentHashMap 的结构
 
+ConcurrentHashMap 分段锁结构:    
+![](https://upload-images.jianshu.io/upload_images/17755742-0aeb208cbf2192f9.jpg?imageMogr2/auto-orient/strip|imageView2/2/w/502/format/webp)
 
+ConcurrentHashMap由一组Segment组成,每个segment是一种可重入锁(ReentrantLock);segment的结构与hashmap类似,是一种数组+链表结构.一个segment由一组HashEntry组成,每个HashEntry是一个链表结构元素.每个Segment守护着一个HashEntry数组里的元素.当对HashEntry元素修改时,必须先获取它对应的Segment锁.
 
+ConcurrentHashMap CAS+sychronized 锁结构(jdk1.8):    
+![](https://upload-images.jianshu.io/upload_images/17755742-84349c0ca1005c43.png?imageMogr2/auto-orient/strip|imageView2/2/w/446/format/webp)
 
+由CAS+sychronized 来保证并发安全,数组+链表+红黑树来实现数据存取
 
+- ConcurrentHashMap 的初始化
 
+ConcurrentHashMap 的初始化即是Segment的创建数量,segment的数量按2的倍数递增,数量最大是2^16次方=65536
 
 
 
