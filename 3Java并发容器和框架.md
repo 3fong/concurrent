@@ -75,6 +75,56 @@ jdk1.7中 ConcurrentHashMap 先尝试两次遍历求和segment.modCount不相同
 
 ### ConcurrentlinkedQueue
 
+一个安全的队列有两种实现方式: 阻塞算法实现的阻塞队列;非阻塞算法实现的非阻塞队列.    
+ConcurrentlinkedQueue 是一种非阻塞队列,基于链接节点的无界线程安全队列,采用先进先出的规则对节点进行排序.通过"wait-free"(CAS算法)实现.
+
+ConcurrentlinkedQueue 结构:    
+![](https://gimg2.baidu.com/image_search/src=http%3A%2F%2Fimage93.360doc.com%2FDownloadImg%2F2016%2F01%2F2121%2F64842160_1.jpg&refer=http%3A%2F%2Fimage93.360doc.com&app=2002&size=f9999,10000&q=a80&n=0&g=0n&fmt=auto?sec=1659056894&t=653b7ad50f0d4850860f2dd5954cb4cb)
+
+ConcurrentlinkedQueue 由head节点和tail节点组成,每个节点(Node)由节点元素(item)和指向下一个节点(next)的引用组成,节点与节点间就是通过这个next关联起来,组成一张链表结构的队列.默认情况下head节点存储的元素为空,tail节点等于head节点.
+
+- 入队
+
+入队就是将入队节点添加到队列的尾部.两个步骤:    
+1 将入队节点设置成当前队列尾节点的下一个节点;    
+2 更新tail节点.如果tail节点的next节点不为空,则将入队节点设置成tail节点;如果tail节点的next节点为空,则将入队节点设置成tail的next节点.->tail节点不总是尾节点
+
+
+JDK1.8 入队实现方法:    
+```
+ public boolean offer(E e) {
+        final Node<E> newNode = new Node<E>(Objects.requireNonNull(e));
+        // p 尾节点实时位置临时变量;t是当前时点尾节点变量
+        for (Node<E> t = tail, p = t;;) {
+            Node<E> q = p.next;
+            // 当尾节点的next为空时,
+            if (q == null) {
+                // p is last node
+                if (NEXT.compareAndSet(p, null, newNode)) {
+                    // Successful CAS is the linearization point
+                    // for e to become an element of this queue,
+                    // and for newNode to become "live".
+                    if (p != t) // hop two nodes at a time; failure is OK
+                        TAIL.weakCompareAndSet(this, t, newNode);
+                    return true;
+                }
+                // Lost CAS race to another thread; re-read next
+            }
+            else if (p == q)
+                // We have fallen off list.  If tail is unchanged, it
+                // will also be off-list, in which case we need to
+                // jump to head, from which all live nodes are always
+                // reachable.  Else the new tail is a better bet.
+                p = (t != (t = tail)) ? t : head;
+            else
+                // Check for tail updates after two hops.
+                p = (p != t && t != (t = tail)) ? t : q;
+        }
+    }
+```
+
+
+- 出队
 
 
 
