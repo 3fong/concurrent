@@ -97,7 +97,7 @@ JDK1.8 入队实现方法:
         // p 尾节点实时位置临时变量;t是当前时点尾节点变量
         for (Node<E> t = tail, p = t;;) {
             Node<E> q = p.next;
-            // 当尾节点的next为空时,
+            // 当尾节点的next为空时,将新节点链入p.next=newNode
             if (q == null) {
                 // p is last node
                 if (NEXT.compareAndSet(p, null, newNode)) {
@@ -110,14 +110,17 @@ JDK1.8 入队实现方法:
                 }
                 // Lost CAS race to another thread; re-read next
             }
+            // p.next==p==null时
             else if (p == q)
-                // We have fallen off list.  If tail is unchanged, it
+                // p已经离链(被删除).We have fallen off list.  If tail is unchanged, it
                 // will also be off-list, in which case we need to
                 // jump to head, from which all live nodes are always
                 // reachable.  Else the new tail is a better bet.
+                // 将临时变量t与赋值为tail后的t比较是否相等.即实时获取tail数据与历史t数据是否相等.相等则t已经离链,跳转到head,从头开始遍历链表;不相等则是其他线程修改了tail,直接返回赋值为tail后t
                 p = (t != (t = tail)) ? t : head;
             else
                 // Check for tail updates after two hops.
+                // 返回最新的尾节点.其他线程修改了tail数据且tail被删除则返回新的tail节点,否则返回p.next节点
                 p = (p != t && t != (t = tail)) ? t : q;
         }
     }
