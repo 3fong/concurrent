@@ -129,11 +129,39 @@ JDK1.8 入队实现方法:
 
 - 出队
 
+```
+    public E poll() {
+        restartFromHead: for (;;) {
+            for (Node<E> h = head, p = h, q;; p = q) {
+                final E item;
+                if ((item = p.item) != null && p.casItem(item, null)) {
+                    // Successful CAS is the linearization point
+                    // for item to be removed from this queue.
+                    if (p != h) // hop two nodes at a time
+                        updateHead(h, ((q = p.next) != null) ? q : p);
+                    return item;
+                }
+                else if ((q = p.next) == null) {
+                    updateHead(h, p);
+                    return null;
+                }
+                else if (p == q)
+                    continue restartFromHead;
+            }
+        }
+    }
+```
 
+#### Java阻塞队列
 
+阻塞队列(BlockingQueue): 一个支持阻塞插入和阻塞移除的队列.    
+阻塞插入: 当队列满时,队列会阻塞插入元素的线程,直到队列不满    
+阻塞移除: 当队列为空时,队列阻塞元素移除,直到队列非空
 
+常用场景: 生产者,消费者
 
-
+阻塞队列插入和移除操作的4种处理方式:    
+![](https://img-blog.csdnimg.cn/img_convert/9a4c36ef5895dd57370ea566e7c81956.png)
 
 
 
