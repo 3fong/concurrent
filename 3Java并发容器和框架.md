@@ -163,8 +163,42 @@ JDK1.8 入队实现方法:
 阻塞队列插入和移除操作的4种处理方式:    
 ![](https://img-blog.csdnimg.cn/img_convert/9a4c36ef5895dd57370ea566e7c81956.png)
 
+阻塞队列
+```
+ArrayBlockingQueue: 数组构成的有界队列FIFO     
+LinkedBlockingQueue: 链表构成的有界队列FIFO
+PriorityBlockingQueue: 支持优先级排序的无界阻塞队列    
+DelayQueue:支持延迟获取元素的无界阻塞队列    
+SynchronousQueue: 不存储元素的阻塞队列,必须等待放入元素被取走,才能继续放入元素.支持公平访问.吞吐高于ArrayBlockingQueue,LinkedBlockingQueue    
+LinkedTransferQueue: 链表构成的无界阻塞队列    
+LinkedBlockingDeque: 链表构成的双向阻塞队列
+```
 
+- DelayQueue
 
+队列元素必须实现Delayed接口,在创建时可指定延迟获取元素时间,延迟期满才会获取元素.使用PriorityQueue实现
+
+适用场景:    
+1 缓存系统.延迟时间是有效期满时间    
+2 定时任务.延迟期满即任务执行.TimerQueue是使用DelayQueue实现的
+
+使用方式(可参考ScheduledThreadPoolExecutor.ScheduledFutureTask)    
+1 创建队列,初始化基本数据.延迟时间time,队列顺序sequenceNumber    
+2 实现getDelay方法,定义返回当前元素还需的延迟时间,单位纳秒    
+3 实现compareTo()指定元素顺序
+
+#### 阻塞队列实现原理
+
+队列只是一个中间状态存储,如何有效的通知线程间队列状态的感知,是队列效率的核心.阻塞队列采取的方式是: 通知模式.    
+通知模式: 生产者添加队列元素,队列满时会阻塞生产者添加,当消费者消费了一个队列中的元素后,会通知生产者当前队列可用.
+
+使用Condtion.await()->LockSupport.park() -> unsafe.park
+
+unsafe.park退出场景:    
+1 unpark执行    
+2 线程被中断    
+3 延时到期    
+4 触发异常,异常现象没有任何原因
 
 
 
