@@ -201,6 +201,23 @@ unsafe.park退出场景:
 4 触发异常,异常现象没有任何原因
 
 
+### Fork/Join框架
+
+Fork/Join框架:通过分解大任务为小任务,并行执行,最终汇总小任务结果得到大任务结果的框架.
+
+工作窃取(work-stealing): 某个线程从其他队列里窃取任务来执行.最大限度的利用空闲线程来提高处理效率.为了避免资源竞争,通常会使用双端队列,正常线程从头部获取任务执行,窃取线程从尾部获取任务执行.
+
+实现:    
+1 任务分割: fork    
+2 执行任务并合并结果: join
+
+实现方式:    
+ForkJoinTask,它的两个抽象子类: RecursiveAction,RecursiveTask
+
+ForkJoinPool 由 ForkJoinTask,ForkJoinWorkerThread组成.    
+ForkJoinTask可以理解为类线程但比线程轻量的实体,在ForkJoinPool中运行的少量ForkJoinWorkerThread可以持有大量的ForkJoinTask和它的子任务.ForkJoinTask同时也是一个轻量的Future,使用时应避免较长阻塞和io.
+
+
 
 
 
