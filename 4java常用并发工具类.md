@@ -141,6 +141,71 @@ PriorityBlockingQueue: 具有优先级的无限阻塞队列
 
 #### 向线程池提交任务
 
+不需要返回值:     
+```
+threadsPool.execute(new Runnable()->(){})
+```
+
+需要返回值:    
+```
+Future<Object> future = executor.submit(haveReturnValueTask);
+future.get();
+```
+
+关闭线程池:    
+shutdown    
+shutdownNow
+
+#### 线程池使用
+
+- 合理配置线程池
+
+任务的性质:CPU密集型,IO密集型,混合型    
+任务优先级:高中低
+任务的执行时间: 长中短
+任务的依赖性: 是否依赖其他系统资源.如数据库连接
+
+划分不同性质的线程池:     
+CPU密集型应配置尽可能小线程,如N(cpu)+1;     
+IO密集型由于cpu时间分片,并不会真正减少并发速度,可以多配置线程.如2N    
+混合型如果任务执行差不多,拆分线程池可以提高并发能力.如果任务相差时间较大,则没必要拆分.可以通过Runtime.getRuntime().availableProcessors()获取当前设备CPU数
+
+执行时间不一的任务可以通过优先级让执行时间短的任务先执行,以提高用户体验
+
+依赖性高的任务,线程数越多,cpu空闲的时间越少,总体效率越高
+
+线程池使用有界队列,队列满时抛出异常,避免无界队列写覆盖,以增强系统的稳定性和预警能力
+
+- 线程池监控
+
+taskCount: 线程池需要执行的任务数量     
+completedTaskCount: 线程池已完成任务数,小于等于taskCount     
+largestPoolSize: 线程池里曾创建过的最大线程数量.判断线程池是否满过,是否要扩容    
+getPoolSize: 线程池的线程数量.线程池中线程只增不减     
+getActiveCount: 获取活动的线程数
+
+扩展监控能力: beforeExecute,afterExecute,terminated
+
+## Executor框架
+
+为了避免每个任务都创建一个线程,实现执行线程复用,JDK1.5后拆分了线程给工作单元(Runnable,Callable)和执行机制(Executor).Executor框架就是这种模式的典型实现.
+
+HotSpot VM线程模型中,Java线程与操作系统线程是一对一的关系.操作系统会调度所有线程并分配给可用的CPU.    
+
+Java线程的两层调度模型:    
+![](https://pics1.baidu.com/feed/d31b0ef41bd5ad6e44c236d303086dddb6fd3c1d.jpeg?token=e54e3a71014b5744c28e83f2dd1b33b2&s=8952C4124E1E77C81E61D844030010A0)
+
+上层:Java多线程程序把应用分解为若干任务,然后使用用户级调度器(Executor框架)把任务映射为固定数量的线程    
+底层: 操作系统内核将这些线程映射到CPU上
+
+### Executor框架结构
+
+
+
+
+
+
+
 
 
 
