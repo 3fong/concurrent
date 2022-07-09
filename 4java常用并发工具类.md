@@ -125,8 +125,8 @@ new ThreadPoolExecutor(corePoolSize,maximumPoolSize,keepAliveTime,milliseconds,r
 - runnableTaskQueue: 任务队列,保存等待执行的任务的阻塞队列.
 
 ArrayBlockingQueue: 基于数组结构的有界阻塞队列,此队列按FIFO原则进行元素排序    
-LinkedBlockingQueue: 基于链表结构的阻塞队列.FIFO.吞吐量比ArrayBlockingQueue高(采用双锁队列,ArrayBlockingQueue只是用一把锁).Executor.newFixedThreadPool使用了该队列.    
-SynchronousQueue: 同步阻塞队列.不存储元素,没插入一个元素,必须有其他线程取走,否则阻塞插入操作.吞吐量高于LinkedBlockingQueue(???).Executor.newCachedThreadPool使用了该队列.    
+LinkedBlockingQueue: 基于链表结构的阻塞队列.FIFO.吞吐量比ArrayBlockingQueue高(采用双锁队列,ArrayBlockingQueue只是用一把锁).Executors.newFixedThreadPool使用了该队列.    
+SynchronousQueue: 同步阻塞无界队列.不存储元素,没插入一个元素,必须有其他线程取走,否则阻塞插入操作.吞吐量高于LinkedBlockingQueue(???).Executors.newCachedThreadPool使用了该队列.    
 PriorityBlockingQueue: 具有优先级的无限阻塞队列
 
 - handler: 饱和策略.RejectedExecutionHandler
@@ -198,10 +198,37 @@ Java线程的两层调度模型:
 上层:Java多线程程序把应用分解为若干任务,然后使用用户级调度器(Executor框架)把任务映射为固定数量的线程    
 底层: 操作系统内核将这些线程映射到CPU上
 
-### Executor框架结构
+### Executor 框架结构
+
+核心由三部分组成:    
+1 任务.待执行的任务逻辑.Runnable,Callable    
+2 调度.Executor及其子类.关键类:ThreadPoolExecutor,ScheduledThreadPoolExecutor    
+3 异步计算的结果.Future及其子类FutureTask 
+
+Executor框架结构:    
+![Executor框架结构](https://img-blog.csdnimg.cn/img_convert/c9bf79470439cf3ae41e86d6a5866f0f.png)
+
+Executor框架调用流程:    
+![Executor框架调用流程](https://img-blog.csdnimg.cn/img_convert/541580fdbcadcd3a8a99eaf09c27786b.png)
+
+#### 组成成员简述
+
+java.util.concurrent.Executors 是一个简化Executor框架使用的工具类,里面有很多方便的方法
+
+- ThreadPoolExecutor
+
+Executors.newFixedThreadPool(int nThreads): 固定线程数量执行器.适用于负载较重的服务器     
+Executors.newSingleThreadExecutor(): 单线程执行器.顺序执行,不会有多线程的场景     
+Executors.newCachedThreadPool(): 缓存执行器.同步阻塞无界队列(SynchronousQueue),适合短小的任务或负载轻的服务器     
+
+- ScheduledThreadPoolExecutor
+
+Executors.
+
+- Future
 
 
-
+- Runnable,Callable
 
 
 
