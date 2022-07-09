@@ -124,10 +124,11 @@ new ThreadPoolExecutor(corePoolSize,maximumPoolSize,keepAliveTime,milliseconds,r
 
 - runnableTaskQueue: 任务队列,保存等待执行的任务的阻塞队列.
 
+无界队列: 容量等于Integer.MAX_VALUE的队列.由于这是最大的int数,所以也被成为无界队列,它的容量的限制除了int值的上限外就是内存资源    
 ArrayBlockingQueue: 基于数组结构的有界阻塞队列,此队列按FIFO原则进行元素排序    
-LinkedBlockingQueue: 基于链表结构的阻塞队列.FIFO.吞吐量比ArrayBlockingQueue高(采用双锁队列,ArrayBlockingQueue只是用一把锁).Executors.newFixedThreadPool使用了该队列.    
+LinkedBlockingQueue: 基于链表结构的无界阻塞队列.FIFO.吞吐量比ArrayBlockingQueue高(采用双锁队列,ArrayBlockingQueue只是用一把锁).Executors.newFixedThreadPool使用了该队列.    
 SynchronousQueue: 同步阻塞无界队列.不存储元素,没插入一个元素,必须有其他线程取走,否则阻塞插入操作.吞吐量高于LinkedBlockingQueue(???).Executors.newCachedThreadPool使用了该队列.    
-PriorityBlockingQueue: 具有优先级的无限阻塞队列
+PriorityBlockingQueue: 具有优先级的无界阻塞队列
 
 - handler: 饱和策略.RejectedExecutionHandler
 
@@ -217,18 +218,86 @@ java.util.concurrent.Executors 是一个简化Executor框架使用的工具类,�
 
 - ThreadPoolExecutor
 
+```
+public ThreadPoolExecutor(int corePoolSize,
+                              int maximumPoolSize,
+                              long keepAliveTime,
+                              TimeUnit unit,
+                              BlockingQueue<Runnable> workQueue,
+                              ThreadFactory threadFactory,
+                              RejectedExecutionHandler handler)
+```
+corePoolSize: 核心线程池大小    
+maximumPoolSize: 最大线程池大小    
+keepAliveTime: 非核心线程等待存活时间     
+TimeUnit unit: keepAliveTime单位    
+BlockingQueue<Runnable> workQueue: 临时保存任务的工作队列    
+ThreadFactory threadFactory: 线程工厂    
+RejectedExecutionHandler handler: 饱和线程时策略    
+
+
 Executors.newFixedThreadPool(int nThreads): 固定线程数量执行器.适用于负载较重的服务器     
+
+```
+具体实现:    
+    new ThreadPoolExecutor(nThreads, nThreads,
+                                      0L, TimeUnit.MILLISECONDS,
+                                      new LinkedBlockingQueue<Runnable>());    
+
+corePoolSize=maximumPoolSize=nThreads: 只有核心线程    
+keepAliveTime=0L,超出核心线程的任务会被立即终止.    
+LinkedBlockingQueue: 是无界队列.所以maximumPoolSize无效,keepAliveTime也会无效.
+```
+
 Executors.newSingleThreadExecutor(): 单线程执行器.顺序执行,不会有多线程的场景     
+
+```
+return new FinalizableDelegatedExecutorService
+            (new ThreadPoolExecutor(1, 1,
+                                    0L, TimeUnit.MILLISECONDS,
+                                    new LinkedBlockingQueue<Runnable>()));
+
+corePoolSize=maximumPoolSize=1 只有一个核心线程.
+```
+
+
 Executors.newCachedThreadPool(): 缓存执行器.同步阻塞无界队列(SynchronousQueue),适合短小的任务或负载轻的服务器     
+
+```
+        return new ThreadPoolExecutor(0, Integer.MAX_VALUE,
+                                      60L, TimeUnit.SECONDS,
+                                      new SynchronousQueue<Runnable>());
+
+corePoolSize=0    
+maximumPoolSize= Integer.MAX_VALUE,无界线程池
+keepAliveTime=60秒    
+SynchronousQueue: 没有容量的阻塞的队列    
+
+```
 
 - ScheduledThreadPoolExecutor
 
-Executors.
+Executors.newScheduledThreadPool(int corePoolSize): 固定线程数量定时调度器.适合限制线程数量的场景    
+Executors.newSingleThreadScheduledExecutor(): 单个线程任务定时调度器.
 
 - Future
 
+表示异步计算结果.    
+ExecutorService中方法:    
+```
+<T> Future<T> submit(Callable<T> task);
+Future<?> submit(Runnable task);
+```
 
 - Runnable,Callable
+
+Runnable: 线程声明接口.不返回结果    
+Callable: 线程声明接口.返回结果    
+Executors方法可以将 Runnable 转换成Callable :    
+```
+public static Callable<Object> callable(Runnable task)
+
+```
 
 
 
