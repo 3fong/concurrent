@@ -277,6 +277,48 @@ SynchronousQueue: 没有容量的阻塞的队列
 
 - ScheduledThreadPoolExecutor
 
+指定延迟后执行或定时执行.
+
+![ScheduledThreadPoolExecutor执行流程](https://img-blog.csdn.net/20180508155251594?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2R1b2R1bzE4dXA=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70)
+
+DelayQueue: 是无界队列.    
+ScheduledThreadPoolExecutor执行流程:     
+1 向DelayQueue添加执行任务 ScheduledFutureTask : 调用scheduleAtFixedRate(),scheduleWithFixedDelay()     
+2 调度执行: 线程池从DelayQueue中获取 ScheduledFutureTask 后周期执行
+2.1 使用DelayQueue作任务队列     
+2.2 定时获取任务    
+2.3 执行任务后需要维护下次执行时间
+
+ScheduledFutureTask 结构:     
+
+```
+// ScheduledThreadPoolExecutor 内部类
+    private class ScheduledFutureTask<V>
+            extends FutureTask<V> implements RunnableScheduledFuture<V> {
+        private final long sequenceNumber;
+
+        /** The nanoTime-based time when the task is enabled to execute. */
+        private volatile long time;
+
+        /**
+         * Period for repeating tasks, in nanoseconds.
+         * A positive value indicates fixed-rate execution.
+         * A negative value indicates fixed-delay execution.
+         * A value of 0 indicates a non-repeating (one-shot) task.
+         */
+        private final long period;
+}
+```
+sequenceNumber: 任务序号,排序使用     
+time: 任务将被执行时间     
+period: 任务执行的间隔周期
+
+DelayQueue封装了一个PriorityQueue,它用于排序:time小,sequenceNumber小,先提交的任务先执行
+
+任务调度流程:    
+![](https://img-blog.csdn.net/20180508170304762?watermark/2/text/aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2R1b2R1bzE4dXA=/font/5a6L5L2T/fontsize/400/fill/I0JBQkFCMA==/dissolve/70)
+
+
 Executors.newScheduledThreadPool(int corePoolSize): 固定线程数量定时调度器.适合限制线程数量的场景    
 Executors.newSingleThreadScheduledExecutor(): 单个线程任务定时调度器.
 
@@ -288,6 +330,11 @@ ExecutorService中方法:
 <T> Future<T> submit(Callable<T> task);
 Future<?> submit(Runnable task);
 ```
+
+FutureTask是Future的实现类.它有三种状态    
+未启动:     
+已启动:    
+已完成:
 
 - Runnable,Callable
 
