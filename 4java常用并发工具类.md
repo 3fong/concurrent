@@ -332,9 +332,9 @@ Future<?> submit(Runnable task);
 ```
 
 FutureTask是Future的实现类.它有三种状态    
-未启动:     
-已启动:    
-已完成:
+未启动:创建之后,run之前     
+已启动:run方法执行时    
+已完成:run方法执行结束或被取消,发生异常结束时
 
 - Runnable,Callable
 
@@ -346,9 +346,46 @@ public static Callable<Object> callable(Runnable task)
 
 ```
 
+#### 并发实战
+
+线程池的应用比单纯的阻塞队列更好,因为线程池的任务处理会在coreSize范围内直接处理,超过该范围才会放入队列,这样比直接放入队列,再从队列中取出执行任务要更快捷.
 
 
+- 线上问题定位
 
+1 top 查看进行执行情况     
+查询你关心的应用执行情况,进入交互命令1,查询CPU执行情况,100%的利用率是有问题的 [top命令详解](https://www.cnblogs.com/niuben/p/12017242.html)    
+cpu高的原因: 
+    代码问题: 死循环     
+    线程性能问题,线程一直在top10的位置    
+    Java GC
+2 查看gc [jstat命令](https://www.cnblogs.com/lizhonghua34/p/7307139.html)
+
+jstat [-命令选项] [vmid] [间隔时间/毫秒] [查询次数]
+
+jstat -gcutil 12323 1000 5
+
+3 线程数据dump
+
+sudo -u admin jstack 31177 > /home/dump17
+
+dump的线程id是16进制的,与top命令的线程id对比要将10进制转为16进制    
+
+printf "%x\n" 31558
+
+4 性能测试
+
+查询端口连接数量
+
+netstat -nat | grep 12200 -c
+
+查看网络流量: cat /proc/net/dev
+
+查看系统平均负载: cat /proc/loadavg
+
+查看系统内存情况: /proc/meminfo
+
+查看cpu利用率: cat /proc/stat
 
 
 
